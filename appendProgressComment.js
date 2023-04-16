@@ -1,32 +1,22 @@
 /** @format */
 
-import { WebClient } from "@slack/web-api";
 import { Configuration, OpenAIApi } from "openai";
 import { Octokit } from "@octokit/rest";
 
-import { slackRequestBody } from "./slackRequestBody.js";
 import { getSlackUserName } from "./getSlackUserName.js";
 import { postSlackMessage } from "./postSlackMessage.js";
 
-const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 const openaiConfig = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
 const openaiClient = new OpenAIApi(openaiConfig);
 
 // 関数実行時にユーザIDとユーザ名を紐付けるための記録用
 const userNames = {};
 // issueを作成する
-export const appendProgressComment = async (requestBody) => {
-  const { thread_ts, user, channel, ts } = slackRequestBody(requestBody);
-
-  const replies = await slackClient.conversations.replies({
-    token: process.env.SLACK_BOT_TOKEN,
-    channel: channel,
-    ts: ts,
-    inclusive: true,
-  });
-
-  // 起票しましたのメッセージを取得する
-  const issueMessage = replies.messages.find((message) => message.text.includes("起票しました"));
+export const appendProgressComment = async (thread_ts, replies, channel, ts) => {
+  // 「起票しました https://github.com/xxxx/xxxx/issues/1」 のようなメッセージにマッチする正規表現
+  const issueMessageRegex = /起票しました <https:\/\/github.com\/.*\/.*\/issues\/\d*>/;
+  // 正規表現に当てはまるメッセージを取得する
+  const issueMessage = replies.messages.find((message) => message.text.match(issueMessageRegex));
 
   // 起票しましたのメッセージが見つからない場合はSlackにメッセージを投稿して処理を終了する
   if (!issueMessage) {
@@ -79,9 +69,7 @@ export const appendProgressComment = async (requestBody) => {
 
   // コメントのURLを取得する
   const commentUrl = issueComment.data.html_url;
-  // slackにコメントのURLを投稿する
-  await postSlackMessage(channel, thread_ts, `経過記録しました ${commentUrl}`);
-  return;
+  return commentUrl;
 };
 
 // 会話の内容からissueに記録用コメントを作成する
@@ -96,13 +84,11 @@ async function createProgressCommentDescription(conversation) {
 ・会話の記録
 ${conversation}
 ーーー
-
 ${process.env.BOT_NAME}: 起票しました github.com/xxx/xxx/issues/xxx はチケットが作成されたときに自動的に記録されます。
 ${process.env.BOT_NAME}: 経過記録しました github.com/xxx/xxx/issues/xxx はチケットに作業経過がコメントされたときに自動的に記録されます。
 これらが会話のログに含まれている場合は、それ以降の内容についての会話を踏まえて、
 以下のようなフォーマットでタスクにコメントする文章を書いてください。
 会話の内容から分からない部分は「不明」、特に存在しない場合は「特になし」として記載してください。
-
 ーーー
 ## 現在の状況
 【会話の内容から誰が何をしている状態かを記載。特になければ特記事項なしとして記載。】

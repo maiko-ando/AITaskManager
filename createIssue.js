@@ -1,29 +1,30 @@
 /** @format */
 
-import { WebClient } from "@slack/web-api";
 import { Configuration, OpenAIApi } from "openai";
 import { Octokit } from "@octokit/rest";
 
-import { slackRequestBody } from "./slackRequestBody.js";
 import { getSlackUserName } from "./getSlackUserName.js";
 import { postSlackMessage } from "./postSlackMessage.js";
 
-const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 const openaiConfig = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
 const openaiClient = new OpenAIApi(openaiConfig);
 
 // 関数実行時にユーザIDとユーザ名を紐付けるための記録用
 const userNames = {};
 // issueを作成する
-export const createIssue = async (requestBody) => {
-  const { thread_ts, user, channel, ts } = slackRequestBody(requestBody);
+export const createIssue = async (thread_ts, replies, channel, ts, slackThreadUrl) => {
+  // 「起票しました https://github.com/xxxx/xxxx/issues/1」 のようなメッセージにマッチする正規表現
+  const issueMessageRegex = /起票しました <https:\/\/github.com\/.*\/.*\/issues\/\d*>/;
+  // 正規表現に当てはまるメッセージを取得する
+  const issueMessage = replies.messages.find((message) => message.text.match(issueMessageRegex));
 
-  const replies = await slackClient.conversations.replies({
-    token: process.env.SLACK_BOT_TOKEN,
-    channel: channel,
-    ts: ts,
-    inclusive: true,
-  });
+  // 起票しましたのメッセージが見つかった場合はSlackにメッセージを投稿して処理を終了する
+  if (issueMessage) {
+    // メッセージに含まれるissueのURLを取得する
+    const issueUrl = issueMessage.text.match(/<(.*)>/)[1];
+    await postSlackMessage(channel, thread_ts, `このスレッドではすでに起票が行われています。${issueUrl}`);
+    return;
+  }
 
   // スレッドから会話した内容の文字列を作成する
   // userのIDから表示名を取得し、表示名: 会話内容の形式で文字列を作成する
@@ -65,24 +66,34 @@ export const createIssue = async (requestBody) => {
   // リポジトリ名
   const repo = repository.split("/")[1];
 
+  const appendSlackUrlBody = `
+${taskBody}
+
+## 起票元のSlackスレッド
+${slackThreadUrl}
+  `;
+
   // issueを作成する
   const issue = await octokit.issues.create({
     owner: owner,
     repo: repo,
     title: title,
-    body: taskBody,
+    body: appendSlackUrlBody,
   });
 
   // ラベルを取得する
   const label = taskBody
     .match(/## 課題の関係者\n(.*)/)[1]
     .split("\n")
-    .map((label) => label.replace(/@/, ""))
+    // @と空文字を削除する
+    .map((label) => label.replace(/@/, "").replace(/ /g, ""))
     .join("");
+
   // 句読点でlabelを分割する（担当者名をラベルにする）
   const labels = label.split(",");
 
-  console.log({ labels });
+  // labelsに空文字列が含まれている場合は削除する
+  labels.filter((label) => label !== "");
 
   // issueにラベルを複数設定する
   await octokit.issues.addLabels({
@@ -94,11 +105,7 @@ export const createIssue = async (requestBody) => {
 
   // issueのURLを取得する
   const issueUrl = issue.data.html_url;
-  // issueのURLをSlackに投稿する
-  await postSlackMessage(channel, thread_ts, `起票しました ${issueUrl}`);
-
-  console.log(openaiResponse);
-  return openaiResponse;
+  return issueUrl;
 };
 
 // 会話の内容からgithubのissueの概要分を作成する
@@ -134,7 +141,7 @@ ${conversation}
 
 ## 期限
 【会話の内容からいつまでに行うべきか判断できれば記載。判断できなければ未定として記載。】
-    `;
+`;
 
   try {
     const response = await openaiClient.createChatCompletion({

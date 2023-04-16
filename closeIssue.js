@@ -1,32 +1,22 @@
 /** @format */
 
-import { WebClient } from "@slack/web-api";
 import { Configuration, OpenAIApi } from "openai";
 import { Octokit } from "@octokit/rest";
 
-import { slackRequestBody } from "./slackRequestBody.js";
 import { getSlackUserName } from "./getSlackUserName.js";
 import { postSlackMessage } from "./postSlackMessage.js";
 
-const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 const openaiConfig = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
 const openaiClient = new OpenAIApi(openaiConfig);
 
 // 関数実行時にユーザIDとユーザ名を紐付けるための記録用
 const userNames = {};
 // issueを作成する
-export const closeIssue = async (requestBody) => {
-  const { thread_ts, user, channel, ts } = slackRequestBody(requestBody);
-
-  const replies = await slackClient.conversations.replies({
-    token: process.env.SLACK_BOT_TOKEN,
-    channel: channel,
-    ts: ts,
-    inclusive: true,
-  });
-
-  // 起票しましたのメッセージを取得する
-  const issueMessage = replies.messages.find((message) => message.text.includes("起票しました"));
+export const closeIssue = async (thread_ts, replies, channel, ts) => {
+  // 「起票しました https://github.com/xxxx/xxxx/issues/1」 のようなメッセージにマッチする正規表現
+  const issueMessageRegex = /起票しました <https:\/\/github.com\/.*\/.*\/issues\/\d*>/;
+  // 正規表現に当てはまるメッセージを取得する
+  const issueMessage = replies.messages.find((message) => message.text.match(issueMessageRegex));
 
   // 起票しましたのメッセージが見つからない場合はSlackにメッセージを投稿して処理を終了する
   if (!issueMessage) {
@@ -87,10 +77,7 @@ export const closeIssue = async (requestBody) => {
 
   // コメントのURLを取得する
   const commentUrl = issueComment.data.html_url;
-
-  // slackにメッセージを投稿する
-  await postSlackMessage(channel, thread_ts, `課題を完了しました！👏✨ ${commentUrl}`);
-  return;
+  return commentUrl;
 };
 
 // 会話の内容からissueに記録用コメントを作成する
@@ -118,7 +105,7 @@ ${process.env.BOT_NAME}: 経過記録しました github.com/xxx/xxx/issues/xxx 
 
 ## 記録事項
 【会話の流れからタスクとして解決しなかったことや懸念すべき事項などあれば記載。特に存在しない場合は特になしと記載。】
-    `;
+`;
 
   try {
     const response = await openaiClient.createChatCompletion({

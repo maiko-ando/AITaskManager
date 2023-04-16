@@ -14,7 +14,7 @@ export const postSlackMessage = async (channel, thread_ts, text) => {
     if (thread_ts) {
       payload["thread_ts"] = thread_ts;
     }
-    await slackClient.chat.postMessage(payload);
+    return await slackClient.chat.postMessage(payload);
   } catch (err) {
     console.error(err);
   }
