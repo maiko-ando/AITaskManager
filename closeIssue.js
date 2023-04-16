@@ -58,6 +58,8 @@ export const closeIssue = async (thread_ts, replies, channel, ts) => {
   const octokit = new Octokit({
     auth: process.env.GITHUB_TOKEN,
   });
+  // リポジトリ名を取得する
+  const repository = process.env.GITHUB_DEFAULT_REPO; // リポジトリのオーナー名とリポジトリ名を/で区切った文字列
   // オーナー名
   const owner = repository.split("/")[0];
   // リポジトリ名
