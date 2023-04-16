@@ -3,6 +3,7 @@ import { WebClient } from "@slack/web-api";
 import { createIssue } from "./createIssue.js";
 import { appendProgressComment } from "./appendProgressComment.js";
 import { closeIssue } from "./closeIssue.js";
+import { summarizeIssue } from "./summarizeIssue.js";
 import { postSlackMessage } from "./postSlackMessage.js";
 import { slackRequestBody } from "./slackRequestBody.js";
 import { getAction } from "./getAction.js";
@@ -49,16 +50,17 @@ export const handler = async (event, context) => {
     return { statusCode: 200, body: JSON.stringify({ success: true }) };
   }
 
+  // slackのスレッドのURL
+  const chatGetPermalinkArguments = await slackClient.chat.getPermalink({
+    channel: channel,
+    message_ts: ts,
+  });
+  const slackThreadUrl = chatGetPermalinkArguments.permalink;
+
   try {
     // textに「起票」という文字が含まれているか
     if (action.includes("起票")) {
       console.info("新規issueを作成する");
-      // slackのスレッドのURL
-      const chatGetPermalinkArguments = await slackClient.chat.getPermalink({
-        channel: channel,
-        message_ts: ts,
-      });
-      const slackThreadUrl = chatGetPermalinkArguments.permalink;
 
       const issueUrl = await createIssue(thread_ts, replies, channel, ts, slackThreadUrl);
       await slackClient.chat.update({
@@ -78,6 +80,18 @@ export const handler = async (event, context) => {
         channel: channel,
         ts: slackPost.ts,
         text: `経過記録しました ${commentUrl}`,
+      });
+    }
+    // textに「まとめ」が含まれているか
+    else if (action.includes("まとめ")) {
+      console.info("まとめたissueを作成する");
+      const issueUrl = await summarizeIssue(thread_ts, replies, channel, ts, slackThreadUrl);
+      // 起票に成功したらメッセージを更新する
+      await slackClient.chat.update({
+        as_user: true,
+        channel: channel,
+        ts: slackPost.ts,
+        text: `起票しました ${issueUrl} \nタスクの経緯を纏めて記録しています`,
       });
     }
     // textに「完了」という文字が含まれているか

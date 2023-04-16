@@ -32,6 +32,11 @@ export const createIssue = async (thread_ts, replies, channel, ts, slackThreadUr
     const userName = await getSlackUserName(message.user);
     userNames[message.user] = userName;
 
+    // 発言内容にBOTへのメンションが含まれる場合はスキップする
+    if (message.text.includes(`<@${process.env.BOT_ID}>`)) {
+      return;
+    }
+
     // userNameがBOTの名前の場合はスキップする
     if (userName === process.env.BOT_NAME) {
       return;
@@ -59,7 +64,8 @@ export const createIssue = async (thread_ts, replies, channel, ts, slackThreadUr
   // タイトルを取得する
   const title = openaiResponse.match(/# (.*)/)[1];
   // ボディを取得する
-  const taskBody = openaiResponse.replace(/# (.*)/, "");
+  // ボディの内容に「, undefined」が含まれている場合は削除する
+  const taskBody = openaiResponse.replace(/# (.*)/, "").replace(/, undefined/g, "");
 
   // オーナー名
   const owner = repository.split("/")[0];

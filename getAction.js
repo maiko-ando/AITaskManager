@@ -12,20 +12,21 @@ export const getAction = async (text) => {
 async function judgeCommand(conversation) {
   const prompt = `
 以下の発言は下記3つのコマンドのどれかに当てはまるか判断してください。
-・「起票」：課題を作成したい
+・「起票」：新しく課題を作成したい
 ・「記録」：課題に記録用のコメントをしたい
 ・「終了」：課題をクローズしたい
+・「まとめ」：経緯をまとめたい
 
 ーーー
 ${conversation}
 ーーー
 判断ができたら、そのコマンドを答えてください。
-必ず「起票」、「記録」、「終了」のいずれかを答えてください。
+必ず「起票」、「記録」、「終了」、「まとめ」のいずれかを答えてください。
     `;
 
   try {
     const response = await openaiClient.createChatCompletion({
-      model: "gpt-3.5-turbo",
+      model: "gpt-3.5-turbo", // ここは節約のためにgpt-3.5-turboを使用する
       messages: [{ role: "user", content: prompt }],
     });
     console.log(response.data.choices);

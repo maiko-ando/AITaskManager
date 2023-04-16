@@ -32,6 +32,10 @@ export const appendProgressComment = async (thread_ts, replies, channel, ts) => 
     const userName = await getSlackUserName(message.user);
     userNames[message.user] = userName;
 
+    // 発言内容にBOTへのメンションが含まれる場合はスキップする
+    if (message.text.includes(`<@${process.env.BOT_ID}>`)) {
+      return;
+    }
     // userNameがBOTの名前の場合はスキップする
     if (userName === process.env.BOT_NAME) {
       return;
