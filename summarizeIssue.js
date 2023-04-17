@@ -2,18 +2,13 @@
 
 import { Configuration, OpenAIApi } from "openai";
 import { Octokit } from "@octokit/rest";
-
-import { getSlackUserName } from "./getSlackUserName.js";
-
 import { appendProgressComment } from "./appendProgressComment.js";
 
 const openaiConfig = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
 const openaiClient = new OpenAIApi(openaiConfig);
 
-// 関数実行時にユーザIDとユーザ名を紐付けるための記録用
-const userNames = {};
 // 経緯をまとめたissueを作成する
-export const summarizeIssue = async (thread_ts, replies, channel, ts, slackThreadUrl, conversation) => {
+export const summarizeIssue = async ({ thread_ts, replies, channel, ts, slackThreadUrl, conversation, repository }) => {
   // 「起票しました https://github.com/xxxx/xxxx/issues/1」 のようなメッセージにマッチする正規表現
   const issueMessageRegex = /起票しました <https:\/\/github.com\/.*\/.*\/issues\/\d*>/;
   // 正規表現に当てはまるメッセージを取得する
@@ -21,7 +16,7 @@ export const summarizeIssue = async (thread_ts, replies, channel, ts, slackThrea
 
   // 起票しましたのメッセージが見つかった場合はissueの終了を行う
   if (issueMessage) {
-    const commentUrl = await appendProgressComment(thread_ts, replies, channel, ts);
+    const commentUrl = await appendProgressComment({ thread_ts, replies, channel, ts, slackThreadUrl, conversation, repository });
     return { commentUrl };
   }
 
@@ -31,8 +26,6 @@ export const summarizeIssue = async (thread_ts, replies, channel, ts, slackThrea
   const octokit = new Octokit({
     auth: process.env.GITHUB_TOKEN,
   });
-  // リポジトリ名を取得する
-  const repository = process.env.GITHUB_DEFAULT_REPO; // リポジトリのオーナー名とリポジトリ名を/で区切った文字列
   // タイトルを取得する
   const title = openaiResponse.match(/# (.*)/)[1];
   // ボディを取得する

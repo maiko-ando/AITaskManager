@@ -7,7 +7,6 @@ import { summarizeIssue } from "./summarizeIssue.js";
 import { postSlackMessage } from "./postSlackMessage.js";
 import { slackRequestBody } from "./slackRequestBody.js";
 import { getAction } from "./getAction.js";
-
 import { getSlackUserName } from "./getSlackUserName.js";
 
 const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
@@ -37,7 +36,7 @@ export const handler = async (event, context) => {
   }
 
   const action = await getAction(text);
-  // 関数実行時にユーザIDとユーザ名を紐付けるための記録用
+  // Slackの関数実行時にユーザIDとユーザ名を紐付けるための記録用
   const userNames = {};
   // スレッドのリプライ
   const replies = await slackClient.conversations.replies({
@@ -63,13 +62,13 @@ export const handler = async (event, context) => {
     if (messageText.includes(`@${process.env.BOT_NAME}`)) {
       return;
     }
+    //
     if (messageText.includes(`@undefined`)) {
       return;
     }
     if (userName === process.env.BOT_NAME) {
       return;
     }
-
     return `${userName}: ${messageText}`;
   });
   const messagesString = await Promise.all(messages);
@@ -77,6 +76,22 @@ export const handler = async (event, context) => {
   const conversation = messagesString.join("\n");
   console.log({ conversation });
 
+  // slackのチャンネルのトピックの文章を取得
+  const channelInfo = await slackClient.conversations.info({
+    token: process.env.SLACK_BOT_TOKEN,
+    channel: channel,
+  });
+
+  // channelInfo.channel.topic.valueから [repository:owner/repo] に該当する箇所を抜き出す
+  // 文章中に中括弧で括られたowner/repoが複数ある場合は最初の1つだけを抜き出す
+  const channelRepository = channelInfo.channel.topic.value.match(/\[repository:.*\]/)?.[0].replace(/\[repository:|]/g, "");
+
+  // チャンネル名にリポジトリが含まれていない場合は環境変数のリポジトリ名を使用する
+  const repository = channelRepository ? channelRepository : process.env.GITHUB_DEFAULT_REPO;
+
+  console.log({ channelRepository, repository });
+
+  // Slackに処理中のメッセージを投稿
   const slackPost = await postSlackMessage(channel, thread_ts, "処理中です :robot_face: :hourglass_flowing_sand:");
   if (typeof slackPost === "undefined") {
     await postSlackMessage(channel, thread_ts, "処理に失敗しました :robot_face: :fire: ");
@@ -91,11 +106,22 @@ export const handler = async (event, context) => {
   const slackThreadUrl = chatGetPermalinkArguments.permalink;
 
   try {
+    // 引数用オブジェクト
+    const args = {
+      thread_ts: thread_ts,
+      replies: replies,
+      channel: channel,
+      ts: ts,
+      slackThreadUrl: slackThreadUrl,
+      conversation: conversation,
+      repository: repository,
+    };
+
     // textに「起票」という文字が含まれているか
     if (action.includes("起票")) {
       console.info("新規issueを作成する");
 
-      const issueUrl = await createIssue(thread_ts, replies, channel, ts, slackThreadUrl, conversation);
+      const issueUrl = await createIssue(args);
       if (issueUrl) {
         await slackClient.chat.update({
           as_user: true,
@@ -108,7 +134,7 @@ export const handler = async (event, context) => {
     // textに「経過」もしくは「記録」の文字が含まれているか
     else if (action.includes("記録")) {
       console.info("経過記録を作成する");
-      const commentUrl = await appendProgressComment(thread_ts, replies, channel, ts, conversation);
+      const commentUrl = await appendProgressComment(args);
 
       if (commentUrl) {
         // 起票に成功したらメッセージを更新する
@@ -123,7 +149,7 @@ export const handler = async (event, context) => {
     // textに「まとめ」が含まれているか
     else if (action.includes("まとめ")) {
       console.info("まとめたissueを作成する");
-      const { issueUrl, commentUrl } = await summarizeIssue(thread_ts, replies, channel, ts, slackThreadUrl, conversation);
+      const { issueUrl, commentUrl } = await summarizeIssue(args);
       if (issueUrl) {
         // 起票に成功したらメッセージを更新する
         await slackClient.chat.update({
@@ -145,7 +171,7 @@ export const handler = async (event, context) => {
     // textに「完了」という文字が含まれているか
     else if (action.includes("終了")) {
       console.info("完了コメントを作成する");
-      const commentUrl = await closeIssue(thread_ts, replies, channel, ts, conversation);
+      const commentUrl = await closeIssue(args);
       await slackClient.chat.update({
         as_user: true,
         channel: channel,
