@@ -12,7 +12,7 @@ const openaiClient = new OpenAIApi(openaiConfig);
 // 関数実行時にユーザIDとユーザ名を紐付けるための記録用
 const userNames = {};
 // issueを作成する
-export const closeIssue = async (thread_ts, replies, channel, ts) => {
+export const closeIssue = async (thread_ts, replies, channel, ts, conversation) => {
   // 「起票しました https://github.com/xxxx/xxxx/issues/1」 のようなメッセージにマッチする正規表現
   const issueMessageRegex = /起票しました <https:\/\/github.com\/.*\/.*\/issues\/\d*>/;
   // 正規表現に当てはまるメッセージを取得する
@@ -26,31 +26,6 @@ export const closeIssue = async (thread_ts, replies, channel, ts) => {
 
   // メッセージに含まれるissueのURLを取得する
   const issueUrl = issueMessage.text.match(/<(.*)>/)[1];
-
-  // 会話の履歴を取得する
-  const messages = replies.messages.map(async (message) => {
-    const userName = await getSlackUserName(message.user);
-    userNames[message.user] = userName;
-    // 発言内容にBOTへのメンションが含まれる場合はスキップする
-    if (message.text.includes(`<@${process.env.BOT_ID}>`)) {
-      return;
-    }
-    // userNameがBOTの名前の場合はスキップする
-    if (userName === process.env.BOT_NAME) {
-      return;
-    }
-    // message.text中に<@U01XXXXXXX>のような形式でユーザIDが含まれている場合、
-    // ユーザIDをユーザ名に置換する。@ユーザー名の形式にする
-    const messageText = message.text.replace(/<@.*>/g, (match) => {
-      const userId = match.replace(/<|>|@/g, "");
-      return `@${userNames[userId]}`;
-    });
-
-    return `${userName}: ${messageText}`;
-  });
-  const messagesString = await Promise.all(messages);
-  // messagesStringを改行コードで連結して1つの文字列にする
-  const conversation = messagesString.join("\n");
 
   const commentText = await createCloseCommentDescription(conversation);
 
