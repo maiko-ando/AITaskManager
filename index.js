@@ -85,14 +85,24 @@ export const handler = async (event, context) => {
     // textに「まとめ」が含まれているか
     else if (action.includes("まとめ")) {
       console.info("まとめたissueを作成する");
-      const issueUrl = await summarizeIssue(thread_ts, replies, channel, ts, slackThreadUrl);
-      // 起票に成功したらメッセージを更新する
-      await slackClient.chat.update({
-        as_user: true,
-        channel: channel,
-        ts: slackPost.ts,
-        text: `起票しました ${issueUrl} \nタスクの経緯を纏めて記録しています`,
-      });
+      const { issueUrl, commentUrl } = await summarizeIssue(thread_ts, replies, channel, ts, slackThreadUrl);
+      if (issueUrl) {
+        // 起票に成功したらメッセージを更新する
+        await slackClient.chat.update({
+          as_user: true,
+          channel: channel,
+          ts: slackPost.ts,
+          text: `起票しました ${issueUrl} \nタスクの経緯を纏めて記録しています`,
+        });
+      } else {
+        //
+        await slackClient.chat.update({
+          as_user: true,
+          channel: channel,
+          ts: slackPost.ts,
+          text: `起票されている課題の経緯をまとめました ${commentUrl} \n`,
+        });
+      }
     }
     // textに「完了」という文字が含まれているか
     else if (action.includes("終了")) {

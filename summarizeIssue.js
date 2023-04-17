@@ -6,7 +6,7 @@ import { Octokit } from "@octokit/rest";
 import { getSlackUserName } from "./getSlackUserName.js";
 import { postSlackMessage } from "./postSlackMessage.js";
 
-import { closeIssue } from "./closeIssue.js";
+import { appendProgressComment } from "./appendProgressComment.js";
 
 const openaiConfig = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
 const openaiClient = new OpenAIApi(openaiConfig);
@@ -22,8 +22,8 @@ export const summarizeIssue = async (thread_ts, replies, channel, ts, slackThrea
 
   // 起票しましたのメッセージが見つかった場合はissueの終了を行う
   if (issueMessage) {
-    await closeIssue(thread_ts, replies, channel, ts);
-    return;
+    const commentUrl = await appendProgressComment(thread_ts, replies, channel, ts);
+    return { commentUrl };
   }
 
   // スレッドから会話した内容の文字列を作成する
@@ -118,7 +118,7 @@ ${slackThreadUrl}
 
   // issueのURLを取得する
   const issueUrl = issue.data.html_url;
-  return issueUrl;
+  return { issueUrl };
 };
 
 // 会話の内容からgithubのissueの概要分を作成する
