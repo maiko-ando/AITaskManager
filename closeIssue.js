@@ -8,7 +8,7 @@ const openaiConfig = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
 const openaiClient = new OpenAIApi(openaiConfig);
 
 // issueを作成する
-export const closeIssue = async ({ thread_ts, replies, channel, ts, conversation, repository }) => {
+export const closeIssue = async ({ thread_ts, replies, channel, conversation, repository }) => {
   // 「起票しました https://github.com/xxxx/xxxx/issues/1」 のようなメッセージにマッチする正規表現
   const issueMessageRegex = /起票しました <https:\/\/github.com\/.*\/.*\/issues\/\d*>/;
   // 正規表現に当てはまるメッセージを取得する
