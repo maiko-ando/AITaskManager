@@ -12,8 +12,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/local-auth": "^2.1.0",
     "@octokit/rest": "^19.0.7",
     "@slack/web-api": "^6.8.1",
+    "googleapis": "^105.0.0",
     "openai": "^3.2.1"
   },
   "devDependencies": {

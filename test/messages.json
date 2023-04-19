@@ -1,0 +1,54 @@
+{
+  "ok": true,
+  "messages": [
+    {
+      "client_msg_id": "db92c00f-498c-463d-9849-d61e1a2e2cd3",
+      "type": "message",
+      "text": "<!here> タコさんソーセージ社のLP制作できる人員っていますか？",
+      "user": "U053DHDGBGA",
+      "ts": "1681809736.729009",
+      "team": "T053S69RLG1",
+      "thread_ts": "1681809736.729009",
+      "reply_count": 11,
+      "reply_users_count": 3,
+      "latest_reply": "1681914941.098289",
+      "is_locked": false,
+      "subscribed": false
+    },
+    {
+      "client_msg_id": "DD311078-A480-484B-99EF-7AD91C6DAD72",
+      "type": "message",
+      "text": "うーん、今誰も空いてないですね…",
+      "user": "U053Q9E325R",
+      "ts": "1681809804.075789",
+      "team": "T053S69RLG1",
+      "thread_ts": "1681809736.729009",
+      "parent_user_id": "U053DHDGBGA"
+    },
+    {
+      "client_msg_id": "DE20BBE4-7EB1-4AD5-B582-D7C4B7EA88F5",
+      "type": "message",
+      "text": "来週からなら佐藤さんアサインできるかもしれません",
+      "user": "U053Q9E325R",
+      "ts": "1681809822.873909",
+      "team": "T053S69RLG1",
+      "thread_ts": "1681809736.729009",
+      "parent_user_id": "U053DHDGBGA"
+    },
+    {
+      "client_msg_id": "5b0c9d47-5be5-470f-b9f0-ba854b9be53f",
+      "type": "message",
+      "text": "<@U053G5TKD0U> まとめて",
+      "user": "U053DHDGBGA",
+      "ts": "1681914941.098289",
+      "team": "T053S69RLG1",
+      "thread_ts": "1681809736.729009",
+      "parent_user_id": "U053DHDGBGA"
+    }
+  ],
+  "has_more": false,
+  "response_metadata": {
+    "scopes": ["app_mentions:read", "users:read", "channels:history", "groups:history", "im:history", "mpim:history", "chat:write", "channels:read", "groups:read", "mpim:read", "im:read"],
+    "acceptedScopes": ["channels:history", "groups:history", "mpim:history", "im:history", "read"]
+  }
+}
