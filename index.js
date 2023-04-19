@@ -11,7 +11,7 @@ import { getSlackUserName } from "./getSlackUserName.js";
 
 const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 
-export const handler = async (event, context) => {
+export const handler = async (event) => {
   console.info(event);
 
   try {
@@ -27,7 +27,7 @@ export const handler = async (event, context) => {
   const text = body.event.text.replace(/<@.*>/g, "");
   console.info({ text }, { body });
   // slackのリクエスト情報
-  const { thread_ts, user, channel, ts } = slackRequestBody(body);
+  const { thread_ts, channel, ts } = slackRequestBody(body);
 
   if (!ts) {
     console.info("スレッドではないところで発言された");
