@@ -5,7 +5,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint \"**/*.js\""
   },
   "keywords": [],
   "author": "",
@@ -14,5 +15,8 @@
     "@octokit/rest": "^19.0.7",
     "@slack/web-api": "^6.8.1",
     "openai": "^3.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.38.0"
   }
 }
